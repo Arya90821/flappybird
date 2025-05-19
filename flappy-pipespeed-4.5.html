@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Flappy Bird - Faster Scroll with Game Over</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      background: #70c5ce;
+    }
+    canvas {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas"></canvas>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    const bird = {
+      x: 150,
+      y: 200,
+      width: 40,
+      height: 30,
+      velocity: 0,
+      jumpStrength: -8,
+      gravity: 0.5
+    };
+
+    const pipes = [];
+    const pipeWidth = 80;
+    const pipeGap = 180;
+    const pipeSpeed = 4.5; // Increased pipe speed to 4.5
+    let frame = 0;
+    let score = 0;
+    let gameOver = false;
+
+    function createPipe() {
+      const topHeight = Math.random() * (canvas.height - pipeGap - 100) + 20;
+      pipes.push({
+        x: canvas.width,
+        top: topHeight,
+        bottom: topHeight + pipeGap,
+        passed: false
+      });
+    }
+
+    function updateBird() {
+      bird.velocity += bird.gravity;
+      bird.y += bird.velocity;
+
+      if (bird.y + bird.height > canvas.height || bird.y < 0) {
+        gameOver = true;
+      }
+    }
+
+    function updatePipes() {
+      for (let i = pipes.length - 1; i >= 0; i--) {
+        const pipe = pipes[i];
+        pipe.x -= pipeSpeed;
+
+        // Collision detection
+        if (
+          bird.x < pipe.x + pipeWidth &&
+          bird.x + bird.width > pipe.x &&
+          (bird.y < pipe.top || bird.y + bird.height > pipe.bottom)
+        ) {
+          gameOver = true;
+        }
+
+        // Scoring
+        if (!pipe.passed && pipe.x + pipeWidth < bird.x) {
+          pipe.passed = true;
+          score++;
+        }
+
+        // Remove off-screen pipes
+        if (pipe.x + pipeWidth < 0) {
+          pipes.splice(i, 1);
+        }
+      }
+
+      if (frame % 120 === 0) {
+        createPipe();
+      }
+    }
+
+    function drawBird() {
+      ctx.fillStyle = 'yellow';
+      ctx.fillRect(bird.x, bird.y, bird.width, bird.height);
+    }
+
+    function drawPipes() {
+      ctx.fillStyle = 'green';
+      pipes.forEach(pipe => {
+        ctx.fillRect(pipe.x, 0, pipeWidth, pipe.top);
+        ctx.fillRect(pipe.x, pipe.bottom, pipeWidth, canvas.height - pipe.bottom);
+      });
+    }
+
+    function drawScore() {
+      ctx.fillStyle = 'white';
+      ctx.font = '32px Arial';
+      ctx.fillText(`Score: ${score}`, 20, 40);
+    }
+
+    function drawGameOver() {
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = 'white';
+      ctx.font = '48px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('Game Over', canvas.width / 2, canvas.height / 2 - 20);
+
+      ctx.font = '32px Arial';
+      ctx.fillText(`Final Score: ${score}`, canvas.width / 2, canvas.height / 2 + 30);
+
+      ctx.font = '24px Arial';
+      ctx.fillText('Press Space or Tap to Restart', canvas.width / 2, canvas.height / 2 + 70);
+
+      ctx.textAlign = 'start';
+    }
+
+    function resetGame() {
+      bird.y = 200;
+      bird.velocity = 0;
+      pipes.length = 0;
+      score = 0;
+      frame = 0;
+      gameOver = false;
+    }
+
+    function gameLoop() {
+      frame++;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (!gameOver) {
+        updateBird();
+        updatePipes();
+        drawBird();
+        drawPipes();
+        drawScore();
+      } else {
+        drawBird();
+        drawPipes();
+        drawScore();
+        drawGameOver();
+      }
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space') {
+        if (gameOver) {
+          resetGame();
+        } else {
+          bird.velocity = bird.jumpStrength;
+        }
+      }
+    });
+
+    window.addEventListener('touchstart', () => {
+      if (gameOver) {
+        resetGame();
+      } else {
+        bird.velocity = bird.jumpStrength;
+      }
+    });
+
+    gameLoop();
+  </script>
+</body>
+</html>
